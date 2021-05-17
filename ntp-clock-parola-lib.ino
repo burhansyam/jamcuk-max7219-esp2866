@@ -4,11 +4,12 @@
 #include <MD_Parola.h>
 #include <MD_MAX72xx.h>
 #include <SPI.h>
-//#include "Font_Data.h"
+#include "font.h"
 #include "DHT.h"
 #define DHTTYPE DHT11 
 const int DHTPin = 2;
 DHT dht(DHTPin, DHTTYPE);
+#define TIMEDHT 1000
 #define HARDWARE_TYPE MD_MAX72XX::FC16_HW
 #define MAX_DEVICES 4
 //set PIN Max7219
@@ -46,8 +47,10 @@ const uint8_t PROGMEM pacman2[F_PMAN2 * W_PMAN2] =  // pacman pursued by a ghost
 #define PAUSE_TIME  2500
 #define MAX_MESG  200
 
-const char *ssid = "Salon Ika Hotspot";
-const char *password = "genjahan";
+
+
+const char *ssid = "POJOK_BKAD";
+const char *password = "semangat";
 
 int timezone = 7;
 int dst = 0;
@@ -58,6 +61,8 @@ uint8_t month;
 String  year;
 uint8_t weton;
 
+uint32_t timerDHT = TIMEDHT;
+float humidity, celsius, fahrenheit;
 
 // Global variables
 char szTime[9];    // mm:ss\0
@@ -65,7 +70,7 @@ char szsecond[4];    // ss
 char cok[MAX_MESG+1] = "";
 //simbol derajat
 uint8_t degC[] = { 6, 3, 3, 56, 68, 68, 68 }; // Deg C
-
+uint8_t degF[] = { 6, 3, 3, 124, 20, 20, 4 }; // Deg F
 //Ambil Bulan
 char *mon2str(uint8_t mon, char *psz, uint8_t len)
 
@@ -131,48 +136,58 @@ void getDate(char *psz)
       dow = p_tm->tm_wday+1;
       day = p_tm->tm_mday;
       month = p_tm->tm_mon + 1;
-  sprintf(psz, "%d %s", day, mon2str(month, szBuf, sizeof(szBuf)-1), (p_tm->tm_year + 1900)); //%04d
+      year = p_tm->tm_year + 1900;      
+  sprintf(psz, "%d %s %04d", day, mon2str(month, szBuf, sizeof(szBuf)-1), (p_tm->tm_year + 1900)); //%04d
  
 }
-// Ambil Tahun
-void getYear(char *psz)
-{
-  char  szBuf[10];
-  time_t now = time(nullptr);
-  struct tm* p_tm = localtime(&now);
-      dow = p_tm->tm_wday+1;
-      day = p_tm->tm_mday;
-      month = p_tm->tm_mon + 1;
-      year = p_tm->tm_year + 1900;
-  sprintf(psz, "%04d", (p_tm->tm_year + 1900)); //%04d
-}
-// Ambil Kelembaban Sensor DHT
-void getHumidit(char *psz)
-{
-        float h = dht.readHumidity();
-          dtostrf(h, 3, 0, cok);
-          strcat(cok, "%Rh");
-}
 
-// Ambil Suhu Sensor DHT
-void getTemperatur(char *psz)
+// Ambil Data Sensor DHT
+void getTemperature()
 {
-        float t = dht.readTemperature();
-          dtostrf(t, 3, 0, cok);
-          strcat(cok, " $");
+  // Wait for a time between measurements
+  if ((millis() - timerDHT) > TIMEDHT) {
+    // Update the timer
+    timerDHT = millis();
+
+    // Reading temperature or humidity takes about 250 milliseconds!
+    // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+    humidity = dht.readHumidity();
+
+    // Read temperature as Celsius (the default)
+    celsius = dht.readTemperature();
+
+    // Read temperature as Fahrenheit (isFahrenheit = true)
+    fahrenheit = dht.readTemperature(true);
+
+    // Check if any reads failed and exit early (to try again)
+    if (isnan(humidity) || isnan(celsius) || isnan(fahrenheit)) {
+      Serial.println("Failed to read from DHT sensor!");
+      return;
+    }
+  }
 }
 
 //Custom Text 1
 void getJancuk1(char *psz)
 {
-  sprintf(psz, "Teks 1");
+  sprintf(psz, "TiTIB");
 }
 //Custom Text 2
 void getJancuk2(char *psz)
 {
-  sprintf(psz, "Teks 2");
+  sprintf(psz, ".BKAD.");
 }
 
+//Custom Text 3
+void getJancuk3(char *psz)
+{
+  sprintf(psz, "HUT GK");
+}
+//Custom Text 4
+void getJancuk4(char *psz)
+{
+  sprintf(psz, "ke 200 dengan tema 'Cancut Taliwanda'");
+}
 
 
 
@@ -200,23 +215,26 @@ void setup(void)
   getTimentp();
   P.begin(3);
   P.setInvert(false);
+  P.setIntensity(0,7); 
   P.setZone(0, 0, 3);
-//  P.setZone(1, 4, 4);
+  P.setZone(1, 1, 4);
 //  P.setZone(2, 5, 7);
   P.setSpriteData(pacman2, W_PMAN2, F_PMAN2, pacman2, W_PMAN2, F_PMAN2);
   P.displayZoneText(0, cok, PA_CENTER, SPEED_TIME, PAUSE_TIME, PA_PRINT, PA_NO_EFFECT);
 //  P.displayZoneText(1, szTime, PA_CENTER, SPEED_TIME, PAUSE_TIME, PA_PRINT, PA_NO_EFFECT);
 //  P.displayZoneText(1, szsecond, PA_LEFT, SPEED_TIME, PAUSE_TIME, PA_CLOSING_CURSOR, PA_CLOSING_CURSOR);
 //  P.displayZoneText(2, szTime, PA_CENTER, SPEED_TIME, PAUSE_TIME, PA_PRINT, PA_NO_EFFECT);
-//  P.setFont(1, numeric7Seg);
-//  P.setFont(2, numeric7Se);
   P.addChar('$', degC);
+  P.addChar('&', degF);
+  
   dht.begin();
+  getTemperature();
   getDate(cok);
-  getYear(cok);  
   getTime(cok);
   getJancuk1(cok);
-  getJancuk1(cok);
+  getJancuk2(cok);
+  getJancuk3(cok);
+  getJancuk4(cok);    
 }
 
 void loop(void)
@@ -238,27 +256,30 @@ void loop(void)
         break;
 
       case 1: // tanggal
-        P.setTextEffect(0, PA_CLOSING_CURSOR, PA_CLOSING_CURSOR);
+        P.setTextEffect(0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
         display++;
         getDate(cok);
         break;
 
-      case 2: // tahun
-        P.setTextEffect(0, PA_CLOSING_CURSOR, PA_CLOSING_CURSOR);
-        display=3;
-        getYear(cok);
-        break;
-        
-      case 3: // Suhu
+      case 2: // suhu c
         P.setTextEffect(0, PA_CLOSING_CURSOR, PA_CLOSING_CURSOR);
         display++;
-        getTemperatur(cok);
+      dtostrf(celsius, 3, 1, cok);
+      strcat(cok, "$");
+        break;
+        
+      case 3: // Suhu f
+        P.setTextEffect(0, PA_CLOSING_CURSOR, PA_CLOSING_CURSOR);
+        display++;
+      dtostrf(fahrenheit, 3, 1, cok);
+      strcat(cok, "&");
         break;
         
       case 4: // Kelembaban
         P.setTextEffect(0, PA_CLOSING_CURSOR, PA_CLOSING_CURSOR);
         display++;
-        getHumidit(cok);
+      dtostrf(humidity, 3, 0, cok);
+      strcat(cok, "%Rh");
         break;
       
       case 5: // Teks
@@ -268,25 +289,25 @@ void loop(void)
         break;  
 
       case 6: // Teks
-        P.setTextEffect(0, PA_SCAN_HORIZ, PA_SCAN_HORIZ);
+        P.setTextEffect(0, PA_GROW_DOWN, PA_GROW_DOWN);
         display++;
         getJancuk2(cok);
         break;  
                
-      case 7:  // Jam
-        P.setTextEffect(0, PA_SPRITE, PA_NO_EFFECT);
+      case 7: // Teks
+        P.setTextEffect(0, PA_GROW_DOWN, PA_SCROLL_RIGHT);
         display++;
-        getTime(cok);
-        break;      
-
-      case 8:  // Jam
-        P.setTextEffect(0, PA_PRINT, PA_NO_EFFECT);
+        getJancuk3(cok);
+        break;  
+               
+      case 8: // Teks
+        P.setTextEffect(0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
         display++;
-        getTime(cok);
-        break; 
-             
+        getJancuk4(cok);
+        break;  
+               
       case 9:  // Jam
-        P.setTextEffect(0, PA_FADE, PA_NO_EFFECT);
+        P.setTextEffect(0, PA_SPRITE, PA_NO_EFFECT);
         display++;
         getTime(cok);
         break;      
@@ -308,14 +329,27 @@ void loop(void)
         display++;
         getTime(cok);
         break; 
-        
+             
       case 13:  // Jam
+        P.setTextEffect(0, PA_FADE, PA_NO_EFFECT);
+        display++;
+        getTime(cok);
+        break;      
+
+      case 14:  // Jam
+        P.setTextEffect(0, PA_PRINT, PA_NO_EFFECT);
+        display++;
+        getTime(cok);
+        break; 
+        
+      case 15:  // Jam
         P.setTextEffect(0, PA_BLINDS, PA_NO_EFFECT);
         display++;
         getTime(cok);
         break;  
         
       default:  // Jam
+//        P.setFont(0, numeric7Se);
         P.setTextEffect(0, PA_PRINT, PA_SPRITE);
         display = 0;
         getTime(cok);
