@@ -67,13 +67,14 @@ float humidity, celsius, fahrenheit;
 // Global variables
 char szTime[9];    // mm:ss\0
 char szsecond[4];    // ss
-char cok[MAX_MESG+1] = "";
+char cok[MAX_MESG+1] = "200";
+
 //simbol derajat
 uint8_t degC[] = { 6, 3, 3, 56, 68, 68, 68 }; // Deg C
 uint8_t degF[] = { 6, 3, 3, 124, 20, 20, 4 }; // Deg F
+
 //Ambil Bulan
 char *mon2str(uint8_t mon, char *psz, uint8_t len)
-
 {
   static const char str[][4] PROGMEM =
   {
@@ -111,11 +112,6 @@ char *dow2str(uint8_t code, char *psz, uint8_t len)
   return(psz);
 }
 
-// Ambil Detik
-void getsec(char *psz)
-{
-  sprintf(psz, "%02d", s);
-}
 // Ambil Jam Menit
 void getTime(char *psz, bool f = true)
 {
@@ -125,6 +121,11 @@ void getTime(char *psz, bool f = true)
       m = p_tm->tm_min;
       s = p_tm->tm_sec;
   sprintf(psz, "%02d%c%02d", h, (f ? ':' : ' '), m);
+}
+// Ambil Detik
+void getsec(char *psz)
+{
+  sprintf(psz, "%02d", s);
 }
 
 // Ambil Tanggal
@@ -148,17 +149,13 @@ void getTemperature()
   if ((millis() - timerDHT) > TIMEDHT) {
     // Update the timer
     timerDHT = millis();
-
     // Reading temperature or humidity takes about 250 milliseconds!
     // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
     humidity = dht.readHumidity();
-
     // Read temperature as Celsius (the default)
     celsius = dht.readTemperature();
-
     // Read temperature as Fahrenheit (isFahrenheit = true)
     fahrenheit = dht.readTemperature(true);
-
     // Check if any reads failed and exit early (to try again)
     if (isnan(humidity) || isnan(celsius) || isnan(fahrenheit)) {
       Serial.println("Failed to read from DHT sensor!");
@@ -190,18 +187,17 @@ void getJancuk4(char *psz)
 }
 
 
-
 void setup(void)
 {
     Serial.begin(115200);
     delay(10);
+    
     //Mencoba konek ke Akses Poin Wifi
     Serial.println();
     Serial.println();
     Serial.print("Connecting to ");
     Serial.println(ssid);
     WiFi.begin(ssid, password);
-
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
         Serial.print(".");
@@ -211,6 +207,7 @@ void setup(void)
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
   delay(3000);
+  
   //ambil ntp
   getTimentp();
   P.begin(3);
@@ -218,12 +215,9 @@ void setup(void)
   P.setIntensity(0,7); 
   P.setZone(0, 0, 3);
   P.setZone(1, 1, 4);
-//  P.setZone(2, 5, 7);
   P.setSpriteData(pacman2, W_PMAN2, F_PMAN2, pacman2, W_PMAN2, F_PMAN2);
   P.displayZoneText(0, cok, PA_CENTER, SPEED_TIME, PAUSE_TIME, PA_PRINT, PA_NO_EFFECT);
-//  P.displayZoneText(1, szTime, PA_CENTER, SPEED_TIME, PAUSE_TIME, PA_PRINT, PA_NO_EFFECT);
-//  P.displayZoneText(1, szsecond, PA_LEFT, SPEED_TIME, PAUSE_TIME, PA_CLOSING_CURSOR, PA_CLOSING_CURSOR);
-//  P.displayZoneText(2, szTime, PA_CENTER, SPEED_TIME, PAUSE_TIME, PA_PRINT, PA_NO_EFFECT);
+//  P.displayZoneText(1, szTime, PA_LEFT, SPEED_TIME, PAUSE_TIME, PA_PRINT, PA_NO_EFFECT);
   P.addChar('$', degC);
   P.addChar('&', degF);
   
@@ -264,22 +258,22 @@ void loop(void)
       case 2: // suhu c
         P.setTextEffect(0, PA_CLOSING_CURSOR, PA_CLOSING_CURSOR);
         display++;
-      dtostrf(celsius, 3, 1, cok);
-      strcat(cok, "$");
+        dtostrf(celsius, 3, 1, cok);
+        strcat(cok, "$");
         break;
         
       case 3: // Suhu f
         P.setTextEffect(0, PA_CLOSING_CURSOR, PA_CLOSING_CURSOR);
         display++;
-      dtostrf(fahrenheit, 3, 1, cok);
-      strcat(cok, "&");
+        dtostrf(fahrenheit, 3, 1, cok);
+        strcat(cok, "&");
         break;
         
       case 4: // Kelembaban
         P.setTextEffect(0, PA_CLOSING_CURSOR, PA_CLOSING_CURSOR);
         display++;
-      dtostrf(humidity, 3, 0, cok);
-      strcat(cok, "%Rh");
+        dtostrf(humidity, 3, 0, cok);
+        strcat(cok, "%Rh");
         break;
       
       case 5: // Teks
@@ -354,7 +348,6 @@ void loop(void)
         display = 0;
         getTime(cok);
         break;               
-                
 
     }
 
@@ -370,7 +363,6 @@ void loop(void)
     flasher = !flasher;
 
 //    P.displayReset(1);
-//    P.displayReset(2);
   }
 }
 
